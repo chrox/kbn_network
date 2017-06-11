@@ -84,6 +84,9 @@ define(function (require) {
                     if($scope.vis.aggs.bySchemaName['first'].length > 1){
                         var secondFieldAggId = $scope.vis.aggs.bySchemaName['first'][1].id;
                     }
+                    if ($scope.vis.aggs.bySchemaName['filter']) {
+                      var filterFieldAggId = $scope.vis.aggs.bySchemaName['filter'][0].id;
+                    };
 
                     if($scope.vis.aggs.bySchemaName['colornode']){
                         var colorNodeAggId = $scope.vis.aggs.bySchemaName['colornode'][0].id;
@@ -107,7 +110,16 @@ define(function (require) {
                     }
 
                     // Get the buckets of that aggregation
-                    var buckets = resp.aggregations[firstFieldAggId].buckets;
+                    var nodeAgg = resp.aggregations;
+                    if (filterFieldAggId) {
+                      var filterBuckets = resp.aggregations[filterFieldAggId].buckets
+                      for (key of Object.keys(filterBuckets)) {
+                        if (filterBuckets[key] instanceof Object && filterBuckets[key][firstFieldAggId]) {
+                          nodeAgg = filterBuckets[key]
+                        }
+                      }
+                    }
+                    var buckets = nodeAgg[firstFieldAggId].buckets;
 
 ///////////////////////////////////////////////////////////////DATA PARSED AND BUILDING NODES///////////////////////////////////////////////////////////////
                     var dataParsed = [];
@@ -235,6 +247,10 @@ define(function (require) {
                                             color: $scope.vis.params.secondNodeColor,
                                             shape: $scope.vis.params.shapeSecondNode
                                         };
+                                        if (newNode.shape == 'image') {
+                                          newNode.image = $scope.vis.params.secondNodeImageTemplate.replace("{key}", newNode.key)
+                                          newNode.size = 100
+                                        }
                                         //Add new node
                                         dataNodes.push(newNode);
                                         //And create the relation (edge)
