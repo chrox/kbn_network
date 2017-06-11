@@ -85,13 +85,21 @@ function NetworkVisTypeProvider(Private) {
         },
         {
           group: 'buckets',
+          name: 'filter',
+          title: 'Filter',
+          mustBeFirst: 'true',
+          max: 1,
+          aggFilter: ['range', 'filters']
+        },
+        {
+          group: 'buckets',
           name: 'first',
           icon: 'fa fa-circle-thin',
-          mustBeFirst: 'true',
+          // mustBeFirst: 'true',
           title: 'Node',
           min: 1,
           max: 2,
-          aggFilter: ['terms']//Only have sense choose terms
+          aggFilter: ['terms', 'significant_terms']//Only have sense choose terms
         },
         {
           group: 'buckets',
@@ -99,7 +107,7 @@ function NetworkVisTypeProvider(Private) {
           icon: 'fa fa-random',
           title: 'Relation',
           max: 1,
-          aggFilter: ['terms']
+          aggFilter: ['terms', 'significant_terms']
         },
         {
           group: 'buckets',
@@ -107,7 +115,7 @@ function NetworkVisTypeProvider(Private) {
           icon: 'fa fa-paint-brush',
           title: 'Node Color',
           max: 1,
-          aggFilter: ['terms']
+          aggFilter: ['terms', 'significant_terms']
         }
       ])
     },
@@ -117,8 +125,6 @@ function NetworkVisTypeProvider(Private) {
       return true;
     },
     ////////////////////
-
-
   });
 }
 
