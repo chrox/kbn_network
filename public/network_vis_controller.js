@@ -1,4 +1,5 @@
 import { uiModules } from 'ui/modules';
+import { makeUnorderedList, makeCtxMenuData } from 'plugins/network_vis/network_vis_utils';
 
 // get the kibana/table_vis module, and make sure that it requires the "kibana" module if it
 // didn't already
@@ -107,16 +108,8 @@ module.controller('KbnNetworkVisController', function ($scope, $sce, $timeout, P
                     }
 
                     // Get the buckets of that aggregation
-                    var nodeAgg = resp.aggregations;
-                    if (filterFieldAggId) {
-                      var filterBuckets = resp.aggregations[filterFieldAggId].buckets
-                      for (key of Object.keys(filterBuckets)) {
-                        if (filterBuckets[key] instanceof Object && filterBuckets[key][firstFieldAggId]) {
-                          nodeAgg = filterBuckets[key]
-                        }
-                      }
-                    }
-                    var buckets = nodeAgg[firstFieldAggId].buckets;
+                    console.log("resp", resp);
+                    var buckets = resp.tables[0].rows;
 
     ///////////////////////////////////////////////////////////////DATA PARSED AND BUILDING NODES///////////////////////////////////////////////////////////////
                     var dataParsed = [];
@@ -221,7 +214,8 @@ module.controller('KbnNetworkVisController', function ($scope, $sce, $timeout, P
                             value: sizeVal,
                             font : {
                             color: $scope.vis.params.labelColor
-                            }
+                            },
+                            aggId: firstFieldAggId,
                         }
 
                         //If activated, show the labels
@@ -296,7 +290,8 @@ module.controller('KbnNetworkVisController', function ($scope, $sce, $timeout, P
                                             font : {
                                             color: $scope.vis.params.labelColor
                                             },
-                                            shape: $scope.vis.params.shapeSecondNode
+                                            shape: $scope.vis.params.shapeSecondNode,
+                                            aggId: secondFieldAggId,
                                         };
                                         if (newNode.shape == 'image') {
                                           newNode.image = $scope.vis.params.secondNodeImageTemplate.replace("{key}", newNode.key)
@@ -364,10 +359,20 @@ module.controller('KbnNetworkVisController', function ($scope, $sce, $timeout, P
                             }
                         },
                         nodes: {
+                            font: {
+                              size: 20,
+                            },
                             physics: $scope.vis.params.nodePhysics,
                             scaling:{
                                 min:$scope.vis.params.minNodeSize,
-                                max:$scope.vis.params.maxNodeSize
+                                max:$scope.vis.params.maxNodeSize,
+                                label: {
+                                  enabled: true,
+                                  min: 30,
+                                  max: 40,
+                                  maxVisible: 40,
+                                  drawThreshold: 10
+                                },
                             }
                         },
                         layout: {
@@ -435,6 +440,40 @@ module.controller('KbnNetworkVisController', function ($scope, $sce, $timeout, P
                     console.log("Create network now");
                     var network = new visN.Network(container, data, options);
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    network.on('click', params => {
+                      var e = params.event;
+                      e.preventDefault();
+
+                      var menu = document.getElementById('context-menu');
+                      var nodeId = params.nodes[0];
+                      if (!nodeId) {
+                        menu.style.display = 'none';
+                        return;
+                      } else if (menu.style.display == 'block') {
+                        menu.style.display = 'none';
+                        return;
+                      }
+
+                      var node = dataNodes.find(dataNode => dataNode.id == nodeId);
+                      console.log("click node", node, e);
+
+                      var menuData = null;
+                      if (node.aggId == firstFieldAggId) {
+                        menuData = makeCtxMenuData($scope.vis.params.firstNodeCtxMenuTemplate, node.key);
+                      } else if (node.aggId == secondFieldAggId) {
+                        menuData = makeCtxMenuData($scope.vis.params.secondNodeCtxMenuTemplate, node.key);
+                      }
+
+                      var srcEvent = e.srcEvent;
+                      if (menuData && menuData.length > 0) {
+                        menu.innerHTML = '';
+                        menu.style.left = srcEvent.layerX + 'px';
+                        menu.style.top = srcEvent.layerY + 'px';
+                        menu.style.display = 'block';
+                        menu.appendChild(makeUnorderedList(menuData));
+                      }
+                    });
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                     $scope.startDynamicResize(network);
 

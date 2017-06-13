@@ -95,7 +95,6 @@ function NetworkVisTypeProvider(Private) {
           group: 'buckets',
           name: 'first',
           icon: 'fa fa-circle-thin',
-          // mustBeFirst: 'true',
           title: 'Node',
           min: 1,
           max: 2,
