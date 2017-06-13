@@ -1,3 +1,5 @@
+import { makeUnorderedList, makeCtxMenuData } from 'plugins/network_vis/network_vis_utils';
+
 define(function (require) {
     // get the kibana/table_vis module, and make sure that it requires the "kibana" module if it
     // didn't already
@@ -8,7 +10,6 @@ define(function (require) {
     const randomColor = require('randomcolor');
     const ElementQueries = require('css-element-queries/src/ElementQueries');
     const ResizeSensor = require('css-element-queries/src/ResizeSensor');
-
 
     // add a controller to the module, which will transform the esResponse into a
     // tabular format that we can pass to the table directive
@@ -205,7 +206,8 @@ define(function (require) {
                             color: colorNodeFinal,
                             shape: $scope.vis.params.shapeFirstNode,
                             //size: sizeVal
-                            value: sizeVal
+                            value: sizeVal,
+                            aggId: firstFieldAggId,
                         }
 
                         //If activated, show the labels
@@ -245,7 +247,8 @@ define(function (require) {
                                             key: dataParsed[n].relationWithSecondNode[r].keySecondNode,
                                             label : dataParsed[n].relationWithSecondNode[r].keySecondNode,
                                             color: $scope.vis.params.secondNodeColor,
-                                            shape: $scope.vis.params.shapeSecondNode
+                                            shape: $scope.vis.params.shapeSecondNode,
+                                            aggId: secondFieldAggId,
                                         };
                                         if (newNode.shape == 'image') {
                                           newNode.image = $scope.vis.params.secondNodeImageTemplate.replace("{key}", newNode.key)
@@ -312,10 +315,20 @@ define(function (require) {
                             }
                         },
                         nodes: {
+                            font: {
+                              size: 20,
+                            },
                             physics: $scope.vis.params.nodePhysics,
                             scaling:{
                                 min:$scope.vis.params.minNodeSize,
-                                max:$scope.vis.params.maxNodeSize
+                                max:$scope.vis.params.maxNodeSize,
+                                label: {
+                                  enabled: true,
+                                  min: 30,
+                                  max: 40,
+                                  maxVisible: 40,
+                                  drawThreshold: 10
+                                },
                             }
                         },
                         layout: {
@@ -382,6 +395,39 @@ define(function (require) {
                     var options = angular.merge(options_1, options_2);
                     console.log("Create network now");
                     var network = new visN.Network(container, data, options);
+                    network.on('click', params => {
+                      var e = params.event;
+                      e.preventDefault();
+
+                      var menu = document.getElementById('context-menu');
+                      var nodeId = params.nodes[0];
+                      if (!nodeId) {
+                        menu.style.display = 'none';
+                        return;
+                      } else if (menu.style.display == 'block') {
+                        menu.style.display = 'none';
+                        return;
+                      }
+
+                      var node = dataNodes.find(dataNode => dataNode.id == nodeId);
+                      console.log("click node", node, e);
+
+                      var menuData = null;
+                      if (node.aggId == firstFieldAggId) {
+                        menuData = makeCtxMenuData($scope.vis.params.firstNodeCtxMenuTemplate, node.key);
+                      } else if (node.aggId == secondFieldAggId) {
+                        menuData = makeCtxMenuData($scope.vis.params.secondNodeCtxMenuTemplate, node.key);
+                      }
+
+                      var srcEvent = e.srcEvent;
+                      if (menuData && menuData.length > 0) {
+                        menu.innerHTML = '';
+                        menu.style.left = srcEvent.layerX + 'px';
+                        menu.style.top = srcEvent.layerY + 'px';
+                        menu.style.display = 'block';
+                        menu.appendChild(makeUnorderedList(menuData));
+                      }
+                    });
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                     $scope.startDynamicResize(network);
